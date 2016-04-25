@@ -10,8 +10,11 @@ int SCLK = A5;
 
 Si4703_Breakout radio(resetPin, SDIO, SCLK);
 int channel;
-int volume = 10;
-char rdsBuffer[10];
+int volume;
+int setVol;
+int currCH;
+int setCH;
+char rdsBuffer[16];
 
 void setup()
 {
@@ -19,11 +22,11 @@ void setup()
   Serial.begin(9600);
   int i;
   char a[5][20];
-  strcpy(a[0], "a b stations");
-  strcpy(a[1], "+ - Volume 0-15");
-  strcpy(a[2], "u d Seek up/down");
-  strcpy(a[3], "r Listen for RDS");
-  strcpy(a[4], "command letter:");
+  strcpy(a[0], "FM Radio 2016");
+  strcpy(a[1], "by Dimitar&Bobi");
+  strcpy(a[2], "Volume 0-15");
+  strcpy(a[3], "Freq 88-108MHz");
+  strcpy(a[4], "Enjoy ^_^");
   for(i=0;i<4;i++){
     lcd.print(a[i]);
     delay(3000);
@@ -33,80 +36,23 @@ void setup()
   lcd.print(a[4]);
 
   radio.powerOn();
-  radio.setVolume(10);
+  volume = 10;
+  radio.setVolume(volume);
 }
 
 void loop() {
-  if (Serial.available())
-  {
-    char ch = Serial.read();
-    if (ch == 'u') 
-    {
-      channel = radio.seekUp();
+    currCH = analogRead(A1)/5.12 +880;
+    setCH = digitalRead(7);
+    setVol = analogRead(A1)/68.27;
+    if(setCH && channel != currCH){
+      channel = analogRead(A1)/5.12 +880; 
+      radio.setChannel(channel);
       displayInfo();
-    } 
-    else if (ch == 'd') 
-    {
-      channel = radio.seekDown();
-      displayInfo();
-    } 
-    else if (ch == '+') 
-    {
-      volume ++;
-      if (volume == 16) volume = 15;
+    }else if(!setCH && volume != setVol){
+      volume = analogRead(A1)/68.27;
       radio.setVolume(volume);
       displayInfo();
-    } 
-    else if (ch == '-') 
-    {
-      volume --;
-      if (volume < 0) volume = 0;
-      radio.setVolume(volume);
-      displayInfo();
-    } 
-    else if (ch == 'a')
-    {
-      channel = 1003;
-      radio.setChannel(channel);
-      displayInfo();
     }
-    else if (ch == 'c')
-    {
-      channel = 876;
-      radio.setChannel(channel);
-      displayInfo();
-    }
-    else if (ch == 'b')
-    {
-      channel = 1030; 
-      radio.setChannel(channel);
-      displayInfo();
-    }
-    else if (ch == 'p')
-    {
-      channel = 1069; 
-      radio.setChannel(channel);
-      displayInfo();
-    }
-    else if (ch == 'h')
-    {
-      channel = 991; 
-      radio.setChannel(channel);
-      displayInfo();
-    }
-    else if (ch == 'r')
-    {
-     lcd.clear();
-     lcd.setCursor(0,0);
-     lcd.print("RDS listening..."); 
-     radio.readRDS(rdsBuffer, 15000);
-     lcd.clear();
-     lcd.setCursor(0,0);
-     lcd.print("RDS heard:");
-     lcd.setCursor(0,1);
-     lcd.print(rdsBuffer);     
-    }
-  }
 }
 
 void displayInfo()
@@ -121,5 +67,10 @@ void displayInfo()
    lcd.setCursor(0,1);
    lcd.print("Volume:"); 
    lcd.setCursor(8,1);
-   lcd.print(volume);
+   if(volume == 0){
+    lcd.print("Mute");
+   }else{
+    lcd.print(volume);
+   }
+   
 }
